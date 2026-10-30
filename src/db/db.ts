@@ -1,4 +1,5 @@
 import { Dexie, type EntityTable } from 'dexie'
+import { newId } from '../domain/ids.ts'
 import type { BodyWeight, Exercise, Routine, SetEntry, Workout } from '../domain/model.ts'
 
 export const db = new Dexie('fittrack') as Dexie & {
@@ -45,5 +46,5 @@ const seed: Pick<Exercise, 'name' | 'muscle' | 'kind'>[] = [
 
 db.on('populate', (tx) => {
   const createdAt = new Date().toISOString()
-  return tx.table('exercises').bulkAdd(seed.map((e) => ({ ...e, id: crypto.randomUUID(), createdAt })))
+  return tx.table('exercises').bulkAdd(seed.map((e) => ({ ...e, id: newId(), createdAt })))
 })

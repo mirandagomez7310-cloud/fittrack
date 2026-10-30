@@ -1,4 +1,5 @@
 import { nameCollator, type ExerciseInput } from '../domain/model.ts'
+import { newId } from '../domain/ids.ts'
 import { db } from './db.ts'
 import { getActiveWorkout } from './workouts.ts'
 
@@ -25,7 +26,7 @@ export function createExercise(input: ExerciseInput) {
     // Misma regla que el orden y el buscador: sin distinguir mayúsculas ni tildes.
     const duplicate = await db.exercises.filter((e) => nameCollator.compare(e.name, input.name) === 0).count()
     if (duplicate) throw new Error('Ya existe un ejercicio con ese nombre')
-    await db.exercises.add({ ...input, id: crypto.randomUUID(), createdAt: new Date().toISOString() })
+    await db.exercises.add({ ...input, id: newId(), createdAt: new Date().toISOString() })
   })
 }
 

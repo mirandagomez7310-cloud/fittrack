@@ -1,4 +1,5 @@
 import { nameCollator, type Routine, type RoutineItem } from '../domain/model.ts'
+import { newId } from '../domain/ids.ts'
 import { db } from './db.ts'
 
 export const allRoutines = async () =>
@@ -7,7 +8,7 @@ export const allRoutines = async () =>
 export const getRoutine = async (id: string) => (await db.routines.get(id)) ?? null
 
 export async function createRoutine(name: string) {
-  const id = crypto.randomUUID()
+  const id = newId()
   await db.routines.add({ id, name, items: [], createdAt: new Date().toISOString() })
   return id
 }

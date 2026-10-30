@@ -1,6 +1,7 @@
 import { Dexie } from 'dexie'
 import type { Routine, SetEntry, SetInput } from '../domain/model.ts'
 import { totalVolume } from '../domain/stats.ts'
+import { newId } from '../domain/ids.ts'
 import { db } from './db.ts'
 
 const now = () => new Date().toISOString()
@@ -15,7 +16,7 @@ export function startWorkout(routine?: Routine) {
     // Un doble toque no crea dos sesiones.
     if (await getActiveWorkout()) return
     await db.workouts.add({
-      id: crypto.randomUUID(),
+      id: newId(),
       startedAt: now(),
       exerciseIds: routine?.items.map((i) => i.exerciseId) ?? [],
       ...(routine && { routineName: routine.name, plan: routine.items }),
@@ -90,7 +91,7 @@ export async function lastSetFor(exerciseId: string) {
 }
 
 export function addSet(workoutId: string, exerciseId: string, input: SetInput) {
-  return db.sets.add({ ...input, id: crypto.randomUUID(), workoutId, exerciseId, createdAt: now() })
+  return db.sets.add({ ...input, id: newId(), workoutId, exerciseId, createdAt: now() })
 }
 
 export const deleteSet = (id: string) => db.sets.delete(id)
