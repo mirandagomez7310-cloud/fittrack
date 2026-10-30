@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "C:/Users/miran/AppData/Local/Temp/claude/C--Users-miran/c5d622e7-8006-412b-b8dd-00274de6c8e5/scratchpad/evaluacion-entorno.html"
+        ],
+        "createdAt": "2026-10-30T22:47:08.826Z",
+        "reason": "Claude: falso positivo; .tbl es el contenedor de desplazamiento de la tabla y sus celdas th/td tienen padding 10px 14px"
+      }
+    ]
+  }
+}
