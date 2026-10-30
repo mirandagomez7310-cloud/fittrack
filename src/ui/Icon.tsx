@@ -1,6 +1,8 @@
 const paths = {
   plus: 'M12 5v14M5 12h14',
   minus: 'M5 12h14',
+  up: 'M6 15l6-6 6 6',
+  down: 'M6 9l6 6 6-6',
   trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3',
 }
 

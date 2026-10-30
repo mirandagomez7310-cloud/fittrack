@@ -1,7 +1,7 @@
 import { useId, useRef, useState } from 'react'
 import { Link } from 'react-router'
-import type { Exercise } from '../../domain/model.ts'
-import { Icon } from '../../ui/Icon.tsx'
+import type { Exercise } from '../domain/model.ts'
+import { Icon } from './Icon.tsx'
 
 const fold = (s: string) =>
   s

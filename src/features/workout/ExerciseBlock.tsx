@@ -7,6 +7,7 @@ import {
   setInput,
   toDecimalInput,
   type Exercise,
+  type RoutineItem,
   type SetEntry,
   type SetInput,
 } from '../../domain/model.ts'
@@ -16,19 +17,28 @@ import { Icon } from '../../ui/Icon.tsx'
 type Props = {
   workoutId: string
   exercise: Exercise
+  target?: RoutineItem
   sets: SetEntry[]
   onDelete: (set: SetEntry) => void
   onRemove: () => void
 }
 
-export function ExerciseBlock({ workoutId, exercise, sets, onDelete, onRemove }: Props) {
+export function ExerciseBlock({ workoutId, exercise, target, sets, onDelete, onRemove }: Props) {
   const last = useLiveQuery(() => lastSetFor(exercise.id), [exercise.id])
   const headingId = useId()
 
   return (
     <section className="exercise" aria-labelledby={headingId}>
       <div className="exercise-head">
-        <h2 id={headingId}>{exercise.name}</h2>
+        <div>
+          <h2 id={headingId}>{exercise.name}</h2>
+          {target && (
+            <p className="muted target">
+              Objetivo {target.sets} × {target.reps}
+              {sets.length > 0 && ` · ${Math.min(sets.length, target.sets)}/${target.sets}`}
+            </p>
+          )}
+        </div>
         {sets.length === 0 && (
           <button type="button" className="btn-link" onClick={onRemove}>
             Quitar
@@ -59,7 +69,7 @@ export function ExerciseBlock({ workoutId, exercise, sets, onDelete, onRemove }:
       {last !== undefined && (
         <SetForm
           weightLabel={exercise.kind === 'bodyweight' ? 'Lastre kg' : 'Kg'}
-          defaults={last ?? { reps: 10, weightKg: 0 }}
+          defaults={last ?? { reps: target?.reps ?? 10, weightKg: 0 }}
           onAdd={(input) => addSet(workoutId, exercise.id, input)}
         />
       )}

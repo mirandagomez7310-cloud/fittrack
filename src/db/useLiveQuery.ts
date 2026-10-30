@@ -3,13 +3,21 @@
 import { liveQuery } from 'dexie'
 import { useEffect, useState } from 'react'
 
-/** Resultado de una consulta Dexie que se actualiza al cambiar los datos. `undefined` mientras carga. */
-export function useLiveQuery<T>(query: () => Promise<T>, deps: readonly unknown[]): T | undefined {
+/**
+ * Resultado de una consulta Dexie que se actualiza al cambiar los datos. `undefined` mientras carga.
+ * `keepPrevious`: al cambiar las deps, sigue mostrando el resultado anterior hasta que llega el nuevo
+ * (para paginar sin parpadeo; no usar si las deps cambian de entidad).
+ */
+export function useLiveQuery<T>(
+  query: () => Promise<T>,
+  deps: readonly unknown[],
+  { keepPrevious = false } = {},
+): T | undefined {
   const [result, setResult] = useState<{ value: T } | undefined>()
 
   useEffect(() => {
-    // Sin esto, al cambiar las deps se seguiría viendo el resultado de la consulta anterior.
-    setResult(undefined)
+    // Por defecto se vacía para no mostrar datos de otra entidad mientras llega la nueva consulta.
+    if (!keepPrevious) setResult(undefined)
     const sub = liveQuery(query).subscribe({
       next: (value) => setResult({ value }),
       // Relanza en render para que lo capture el ErrorBoundary de la ruta.

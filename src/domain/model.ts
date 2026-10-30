@@ -23,12 +23,24 @@ export type Exercise = {
   createdAt: string
 }
 
+export type RoutineItem = { exerciseId: string; sets: number; reps: number }
+
+export type Routine = {
+  id: string
+  name: string
+  items: RoutineItem[]
+  createdAt: string
+}
+
 export type Workout = {
   id: string
   startedAt: string
   endedAt?: string
   /** Orden en que se añadieron los ejercicios a la sesión. */
   exerciseIds: string[]
+  /** Copia de la rutina al empezar: editarla o borrarla después no cambia el historial. */
+  routineName?: string
+  plan?: RoutineItem[]
 }
 
 /** weightKg: carga en kg; en ejercicios de peso corporal es el lastre (0 si no hay). */
@@ -49,8 +61,13 @@ export function parseDecimal(value: string): number {
 
 export const toDecimalInput = (n: number) => String(n).replace('.', ',')
 
+/** Regla única para ordenar y comparar nombres: sin distinguir mayúsculas ni tildes. */
+export const nameCollator = new Intl.Collator('es', { sensitivity: 'base' })
+
+export const nameField =z.string().trim().min(1, 'Escribe un nombre').max(60, 'Máximo 60 caracteres')
+
 export const exerciseInput = z.object({
-  name: z.string().trim().min(1, 'Escribe un nombre').max(60, 'Máximo 60 caracteres'),
+  name: nameField,
   muscle: z.enum(muscleGroups, 'Elige un grupo muscular'),
   kind: z.enum(['weighted', 'bodyweight'], 'Elige un tipo'),
 })

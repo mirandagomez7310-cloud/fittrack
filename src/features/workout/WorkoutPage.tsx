@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { allExercises } from '../../db/exercises.ts'
+import { allRoutines } from '../../db/routines.ts'
 import { useLiveQuery } from '../../db/useLiveQuery.ts'
 import {
   addExerciseToWorkout,
@@ -12,10 +13,10 @@ import {
   workoutSets,
 } from '../../db/workouts.ts'
 import type { SetEntry, Workout } from '../../domain/model.ts'
-import { formatKg, totalVolume } from '../../domain/stats.ts'
+import { count, formatKg, totalVolume } from '../../domain/stats.ts'
+import { ExercisePicker } from '../../ui/ExercisePicker.tsx'
 import { Page } from '../../ui/Page.tsx'
 import { ExerciseBlock } from './ExerciseBlock.tsx'
-import { ExercisePicker } from './ExercisePicker.tsx'
 
 const time = new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit' })
 
@@ -23,21 +24,41 @@ const failure = (err: unknown) => `No se pudo guardar: ${err instanceof Error ? 
 
 export function WorkoutPage() {
   const active = useLiveQuery(getActiveWorkout, [])
+  const routines = useLiveQuery(allRoutines, [])
   const [status, setStatus] = useState('')
 
   /** Las escrituras desde eventos no llegan al ErrorBoundary: el fallo se anuncia en el status. */
   const run = (write: Promise<unknown>) => write.catch((err: unknown) => setStatus(failure(err)))
+  const ready = routines?.filter((r) => r.items.length > 0) ?? []
 
   return (
     <Page title="Entrenar">
-      {active === null && (
-        <button
-          type="button"
-          className="btn btn-primary btn-block"
-          onClick={() => void run(startWorkout().then(() => setStatus('')))}
-        >
-          Empezar entrenamiento
-        </button>
+      {active === null && routines && (
+        <>
+          {ready.length > 0 && (
+            <ul className="start-list" aria-label="Empezar desde una rutina">
+              {ready.map((r) => (
+                <li key={r.id}>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-block btn-split"
+                    onClick={() => void run(startWorkout(r).then(() => setStatus('')))}
+                  >
+                    <span>{r.name}</span>
+                    <span className="btn-meta">{count(r.items.length, 'ejercicio', 'ejercicios')}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <button
+            type="button"
+            className={`btn btn-block ${ready.length ? 'btn-secondary' : 'btn-primary'}`}
+            onClick={() => void run(startWorkout().then(() => setStatus('')))}
+          >
+            {ready.length ? 'Entrenamiento libre' : 'Empezar entrenamiento'}
+          </button>
+        </>
       )}
       {active && <ActiveWorkout workout={active} onStatus={setStatus} run={run} />}
       {/* Siempre montado para que los lectores de pantalla anuncien los cambios. */}
@@ -65,7 +86,7 @@ function ActiveWorkout({ workout, onStatus, run }: ActiveProps) {
 
   const remove = (set: SetEntry) => run(deleteSet(set.id).then(() => setDeleted(set)))
 
-  const summary = `${sets.length} series, ${formatKg(totalVolume(sets))} kg de volumen`
+  const summary = `${count(sets.length, 'serie', 'series')}, ${formatKg(totalVolume(sets))} kg de volumen`
   const finish = () =>
     run(
       finishWorkout(workout.id).then((saved) =>
@@ -75,7 +96,9 @@ function ActiveWorkout({ workout, onStatus, run }: ActiveProps) {
 
   return (
     <>
-      <p className="muted">Empezado a las {time.format(new Date(workout.startedAt))}</p>
+      <p className="muted">
+        {workout.routineName ? `${workout.routineName} · ` : ''}Empezado a las {time.format(new Date(workout.startedAt))}
+      </p>
 
       {workout.exerciseIds.map((id) => {
         const exercise = byId.get(id)
@@ -85,6 +108,7 @@ function ActiveWorkout({ workout, onStatus, run }: ActiveProps) {
               key={id}
               workoutId={workout.id}
               exercise={exercise}
+              target={workout.plan?.find((i) => i.exerciseId === id)}
               sets={sets.filter((s) => s.exerciseId === id)}
               onDelete={(set) => void remove(set)}
               onRemove={() => void run(removeExerciseFromWorkout(workout.id, id))}
