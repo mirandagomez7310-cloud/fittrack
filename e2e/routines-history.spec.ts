@@ -82,7 +82,9 @@ test('exportar e importar: rechaza archivos inválidos y reemplaza con uno váli
   const confirm = page.getByRole('group', { name: 'Confirmar importación' })
   await expect(confirm).toContainText('1 rutina,')
   await confirm.getByRole('button', { name: 'Reemplazar mis datos' }).click()
-  await expect(page.getByRole('status').last()).toHaveText('Copia importada. Tus datos se han reemplazado.')
+  await expect(page.getByRole('region', { name: 'Copia de seguridad' }).getByRole('status')).toHaveText(
+    'Copia importada. Tus datos se han reemplazado.',
+  )
 
   await page.goto('/rutinas')
   await expect(page.getByRole('list', { name: 'Tus rutinas' })).toContainText('Torso')

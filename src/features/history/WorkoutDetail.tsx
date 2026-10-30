@@ -1,8 +1,12 @@
-import { Link, useParams } from 'react-router'
+import { useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router'
 import { allExercises } from '../../db/exercises.ts'
+import { deleteHistorySet, deleteWorkout, restoreWorkout, type WorkoutSnapshot } from '../../db/history.ts'
 import { useLiveQuery } from '../../db/useLiveQuery.ts'
 import { getWorkout, workoutSets } from '../../db/workouts.ts'
+import type { SetEntry } from '../../domain/model.ts'
 import { count, durationMinutes, formatDateTime, formatKg, formatSet, totalVolume } from '../../domain/stats.ts'
+import { Icon } from '../../ui/Icon.tsx'
 import { Page } from '../../ui/Page.tsx'
 
 async function load(id: string) {
@@ -12,9 +16,14 @@ async function load(id: string) {
   return { workout: { ...workout, endedAt: workout.endedAt }, sets, exercises }
 }
 
+const message = (err: unknown) => (err instanceof Error ? err.message : 'error desconocido')
+
 export function WorkoutDetail() {
   const { id = '' } = useParams()
   const data = useLiveQuery(() => load(id), [id])
+  const navigate = useNavigate()
+  const [undo, setUndo] = useState<WorkoutSnapshot | null>(null)
+  const [status, setStatus] = useState('')
   const back = (
     <p>
       <Link to="/historial">Volver al historial</Link>
@@ -26,6 +35,27 @@ export function WorkoutDetail() {
 
   const { workout, sets, exercises } = data
   const byId = new Map(exercises.map((e) => [e.id, e]))
+
+  // El historial ofrece deshacer cuando la sesión desaparece entera.
+  const leave = (snapshot: WorkoutSnapshot) => navigate('/historial', { state: { deleted: snapshot } })
+
+  async function removeSet(set: SetEntry) {
+    try {
+      const { snapshot, workoutDeleted } = await deleteHistorySet(set)
+      if (workoutDeleted) leave(snapshot)
+      else setUndo(snapshot)
+    } catch (err) {
+      setStatus(`No se pudo eliminar: ${message(err)}.`)
+    }
+  }
+
+  async function removeWorkout() {
+    try {
+      leave(await deleteWorkout(workout.id))
+    } catch (err) {
+      setStatus(`No se pudo eliminar: ${message(err)}.`)
+    }
+  }
 
   return (
     <Page title={formatDateTime(workout.startedAt)}>
@@ -48,6 +78,14 @@ export function WorkoutDetail() {
                   <li key={s.id}>
                     <span className="set-n">{i + 1}</span>
                     <span className="set-value">{formatSet(s, exercise.kind)}</span>
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      aria-label={`Eliminar serie ${i + 1} de ${exercise.name}`}
+                      onClick={() => void removeSet(s)}
+                    >
+                      <Icon name="trash" />
+                    </button>
                   </li>
                 ))}
             </ol>
@@ -55,7 +93,30 @@ export function WorkoutDetail() {
         )
       })}
 
+      <button type="button" className="btn btn-danger btn-block finish" onClick={() => void removeWorkout()}>
+        Eliminar entrenamiento
+      </button>
       {back}
+
+      <div role="status" className="status">
+        {status}
+      </div>
+      {undo && (
+        <div className="undo-bar" role="status">
+          <span>Serie eliminada</span>
+          <button
+            type="button"
+            className="btn-link"
+            onClick={() =>
+              void restoreWorkout(undo)
+                .then(() => setUndo(null))
+                .catch((err: unknown) => setStatus(`No se pudo restaurar: ${message(err)}.`))
+            }
+          >
+            Deshacer
+          </button>
+        </div>
+      )}
     </Page>
   )
 }

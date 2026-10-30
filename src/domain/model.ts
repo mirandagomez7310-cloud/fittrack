@@ -1,6 +1,9 @@
 import { z } from 'zod'
 import { todayISO } from './dates.ts'
 
+// Sin JIT: Zod probaría `new Function` y la CSP (script-src 'self', sin 'unsafe-eval') lo bloquea.
+z.config({ jitless: true })
+
 export const muscleGroups = [
   'Pecho',
   'Espalda',
