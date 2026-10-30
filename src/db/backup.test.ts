@@ -101,7 +101,9 @@ async function validBackup(): Promise<Backup> {
 
 test.each<[string, (b: Backup) => unknown]>([
   ['otra app', (b) => ({ ...b, app: 'otra' })],
-  ['versión futura', (b) => ({ ...b, version: 2 })],
+  ['versión futura', (b) => ({ ...b, version: 3 })],
+  ['dos pesos el mismo día', (b) => ({ ...b, bodyWeights: [{ date: '2026-10-01', weightKg: 70 }, { date: '2026-10-01', weightKg: 71 }] })],
+  ['peso corporal absurdo', (b) => ({ ...b, bodyWeights: [{ date: '2026-10-01', weightKg: 5 }] })],
   ['serie con ejercicio inexistente', (b) => ({ ...b, sets: [{ ...b.sets[0]!, exerciseId: 'nope' }] })],
   ['serie de sesión inexistente', (b) => ({ ...b, sets: [{ ...b.sets[0]!, workoutId: 'nope' }] })],
   ['ids repetidos', (b) => ({ ...b, exercises: [...b.exercises, b.exercises[0]!] })],
@@ -118,6 +120,30 @@ test.each<[string, (b: Backup) => unknown]>([
   const b = await validBackup()
   const r = parseBackup(JSON.stringify(mutate(b)))
   expect(r.ok).toBe(false)
+})
+
+test('acepta copias v1 (sin peso corporal) y las importa', async () => {
+  const { bodyWeights: _, ...v1 } = { ...(await validBackup()), version: 1 }
+  const r = parseBackup(JSON.stringify(v1))
+  expect(r.ok && r.data.bodyWeights).toEqual([])
+  if (r.ok) await importData(r.data)
+  expect(await db.bodyWeights.count()).toBe(0)
+})
+
+test('deshacer un peso borrado no pisa el guardado después ese día', async () => {
+  const { deleteBodyWeight, restoreBodyWeight, saveBodyWeight } = await import('./progress.ts')
+  const old = { date: '2026-10-01', weightKg: 72.1 }
+  await saveBodyWeight(old)
+  await deleteBodyWeight(old.date)
+  await saveBodyWeight({ date: '2026-10-01', weightKg: 73 })
+  expect(await restoreBodyWeight(old)).toBe(false)
+  expect((await db.bodyWeights.get('2026-10-01'))?.weightKg).toBe(73)
+})
+
+test('el peso corporal viaja en la copia', async () => {
+  await db.bodyWeights.put({ date: '2026-10-30', weightKg: 72.4 })
+  const r = parseBackup(JSON.stringify(await exportData()))
+  expect(r.ok && r.data.bodyWeights).toEqual([{ date: '2026-10-30', weightKg: 72.4 }])
 })
 
 test('descarta claves desconocidas y rechaza no-JSON', async () => {

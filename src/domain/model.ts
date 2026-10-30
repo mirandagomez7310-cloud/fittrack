@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { todayISO } from './dates.ts'
 
 export const muscleGroups = [
   'Pecho',
@@ -43,6 +44,9 @@ export type Workout = {
   plan?: RoutineItem[]
 }
 
+/** Un registro por día (fecha local YYYY-MM-DD); registrar de nuevo ese día lo reemplaza. */
+export type BodyWeight = { date: string; weightKg: number }
+
 /** weightKg: carga en kg; en ejercicios de peso corporal es el lastre (0 si no hay). */
 export type SetEntry = {
   id: string
@@ -85,3 +89,13 @@ export const setInput = z.object({
     .transform((n) => Math.round(n * 100) / 100),
 })
 export type SetInput = z.output<typeof setInput>
+
+export const bodyWeightInput = z.object({
+  // La comparación de cadenas YYYY-MM-DD es cronológica. Se evalúa al validar, no al cargar el módulo.
+  date: z.iso.date('Elige una fecha').refine((d) => d <= todayISO(), 'No puede ser una fecha futura'),
+  weightKg: z
+    .string()
+    .transform(parseDecimal)
+    .pipe(z.number('Introduce un número').min(20, 'Mínimo 20 kg').max(400, 'Máximo 400 kg'))
+    .transform((n) => Math.round(n * 10) / 10),
+})

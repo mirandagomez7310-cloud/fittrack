@@ -40,7 +40,11 @@ export async function finishedWorkouts(limit: number) {
     .anyOf(shown.map((w) => w.id))
     .toArray()
   const byWorkout = new Map<string, SetEntry[]>()
-  for (const s of sets) byWorkout.set(s.workoutId, [...(byWorkout.get(s.workoutId) ?? []), s])
+  for (const s of sets) {
+    const own = byWorkout.get(s.workoutId)
+    if (own) own.push(s)
+    else byWorkout.set(s.workoutId, [s])
+  }
   const page = shown.map((w) => {
     const own = byWorkout.get(w.id) ?? []
     return { ...w, setCount: own.length, volume: totalVolume(own) }

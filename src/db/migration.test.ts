@@ -5,7 +5,7 @@ import { db } from './db.ts'
 import { deleteExercise, usedExerciseIds } from './exercises.ts'
 import { addRoutineItem, createRoutine } from './routines.ts'
 
-test('v1 → v2 conserva los datos y habilita rutinas', async () => {
+test('v1 → v3 conserva los datos y habilita rutinas y peso corporal', async () => {
   await db.delete()
   db.close()
 
@@ -26,7 +26,9 @@ test('v1 → v2 conserva los datos y habilita rutinas', async () => {
   v1.close()
 
   await db.open()
-  expect(db.verno).toBe(2)
+  expect(db.verno).toBe(3)
+  await db.bodyWeights.put({ date: '2026-10-30', weightKg: 72 })
+  expect(await db.bodyWeights.count()).toBe(1)
   // No se vuelve a sembrar el catálogo al actualizar.
   expect(await db.exercises.count()).toBe(2)
   expect(await db.sets.get('s')).toMatchObject({ reps: 5, weightKg: 100 })

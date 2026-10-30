@@ -6,7 +6,6 @@ import { WorkoutDetail } from './features/history/WorkoutDetail.tsx'
 import { RoutineEditor } from './features/routines/RoutineEditor.tsx'
 import { RoutinesPage } from './features/routines/RoutinesPage.tsx'
 import { WorkoutPage } from './features/workout/WorkoutPage.tsx'
-import { Page } from './ui/Page.tsx'
 
 export const routes: RouteObject[] = [
   {
@@ -21,13 +20,9 @@ export const routes: RouteObject[] = [
       { path: 'historial', Component: HistoryPage },
       { path: 'historial/:id', Component: WorkoutDetail },
       {
-        // shortcut: página vacía hasta la fase 4.
+        // Carga diferida: las gráficas no pesan en el arranque de Entrenar.
         path: 'progreso',
-        element: (
-          <Page title="Progreso">
-            <p className="muted">Próximamente.</p>
-          </Page>
-        ),
+        lazy: async () => ({ Component: (await import('./features/progress/ProgressPage.tsx')).ProgressPage }),
       },
       { path: '*', Component: NotFound },
     ],

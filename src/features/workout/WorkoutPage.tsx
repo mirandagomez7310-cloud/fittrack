@@ -127,7 +127,7 @@ function ActiveWorkout({ workout, onStatus, run }: ActiveProps) {
       </button>
 
       {deleted && (
-        <div className="undo-bar">
+        <div className="undo-bar" role="status">
           <span>Serie eliminada</span>
           <button
             type="button"

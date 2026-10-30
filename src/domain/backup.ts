@@ -17,7 +17,8 @@ const MAX_EXERCISES = 5_000
 export const backupSchema = z
   .object({
     app: z.literal('fittrack', 'No es una copia de FitTrack'),
-    version: z.literal(1, 'Versión de copia no compatible'),
+    // v1 (fase 3) no tenía peso corporal; se sigue aceptando.
+    version: z.literal([1, 2], 'Versión de copia no compatible'),
     exportedAt: date,
     exercises: z
       .array(
@@ -57,6 +58,10 @@ export const backupSchema = z
         }),
       )
       .max(1_000_000),
+    bodyWeights: z
+      .array(z.object({ date: z.iso.date(), weightKg: z.number().min(20).max(400) }))
+      .max(100_000)
+      .default([]),
   })
   .superRefine((b, ctx) => {
     const fail = (message: string) => ctx.addIssue({ code: 'custom', message })
@@ -64,6 +69,9 @@ export const backupSchema = z
     for (const table of ['exercises', 'routines', 'workouts', 'sets'] as const) {
       const ids = b[table].map((r) => r.id)
       if (new Set(ids).size !== ids.length) fail(`Hay ids repetidos en ${table}`)
+    }
+    if (new Set(b.bodyWeights.map((w) => w.date)).size !== b.bodyWeights.length) {
+      fail('Hay más de un peso corporal el mismo día')
     }
 
     const names = b.exercises.map((e) => e.name).sort(nameCollator.compare)
@@ -97,7 +105,7 @@ export const backupSchema = z
     }
   })
 
-export type Backup = z.infer<typeof backupSchema>
+export type Backup = z.output<typeof backupSchema>
 
 /** Lee y valida un archivo de copia. Devuelve los datos o una lista de problemas legibles. */
 export function parseBackup(text: string): { ok: true; data: Backup } | { ok: false; errors: string[] } {

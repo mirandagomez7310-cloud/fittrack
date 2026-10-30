@@ -1,11 +1,12 @@
 import { Dexie, type EntityTable } from 'dexie'
-import type { Exercise, Routine, SetEntry, Workout } from '../domain/model.ts'
+import type { BodyWeight, Exercise, Routine, SetEntry, Workout } from '../domain/model.ts'
 
 export const db = new Dexie('fittrack') as Dexie & {
   exercises: EntityTable<Exercise, 'id'>
   workouts: EntityTable<Workout, 'id'>
   sets: EntityTable<SetEntry, 'id'>
   routines: EntityTable<Routine, 'id'>
+  bodyWeights: EntityTable<BodyWeight, 'date'>
   /** Ajustes de la app en este dispositivo; no forman parte de la copia. */
   meta: EntityTable<{ key: string; value: string }, 'key'>
 }
@@ -19,6 +20,9 @@ db.version(1).stores({
 db.version(2).stores({
   routines: 'id',
   meta: 'key',
+})
+db.version(3).stores({
+  bodyWeights: 'date',
 })
 
 const seed: Pick<Exercise, 'name' | 'muscle' | 'kind'>[] = [
