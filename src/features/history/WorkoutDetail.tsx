@@ -4,9 +4,11 @@ import { allExercises } from '../../db/exercises.ts'
 import { deleteHistorySet, deleteWorkout, restoreWorkout, type WorkoutSnapshot } from '../../db/history.ts'
 import { useLiveQuery } from '../../db/useLiveQuery.ts'
 import { getWorkout, workoutSets } from '../../db/workouts.ts'
+import { errorMessage } from '../../domain/errors.ts'
 import type { SetEntry } from '../../domain/model.ts'
 import { count, durationMinutes, formatDateTime, formatKg, formatSet, totalVolume } from '../../domain/stats.ts'
 import { Icon } from '../../ui/Icon.tsx'
+import { setPendingUndo } from '../../ui/pendingUndo.ts'
 import { Page } from '../../ui/Page.tsx'
 
 async function load(id: string) {
@@ -16,10 +18,13 @@ async function load(id: string) {
   return { workout: { ...workout, endedAt: workout.endedAt }, sets, exercises }
 }
 
-const message = (err: unknown) => (err instanceof Error ? err.message : 'error desconocido')
-
 export function WorkoutDetail() {
   const { id = '' } = useParams()
+  // key: al pasar de /historial/A a /historial/B, el deshacer y los mensajes de A no deben seguir en B.
+  return <Detail key={id} id={id} />
+}
+
+function Detail({ id }: { id: string }) {
   const data = useLiveQuery(() => load(id), [id])
   const navigate = useNavigate()
   const [undo, setUndo] = useState<WorkoutSnapshot | null>(null)
@@ -36,8 +41,12 @@ export function WorkoutDetail() {
   const { workout, sets, exercises } = data
   const byId = new Map(exercises.map((e) => [e.id, e]))
 
-  // El historial ofrece deshacer cuando la sesión desaparece entera.
-  const leave = (snapshot: WorkoutSnapshot) => navigate('/historial', { state: { deleted: snapshot } })
+  // El historial ofrece deshacer cuando la sesión desaparece entera. replace: "Atrás" no debe
+  // volver al detalle de una sesión que ya no existe.
+  const leave = (snapshot: WorkoutSnapshot) => {
+    setPendingUndo('workout', snapshot)
+    navigate('/historial', { replace: true })
+  }
 
   async function removeSet(set: SetEntry) {
     try {
@@ -45,7 +54,7 @@ export function WorkoutDetail() {
       if (workoutDeleted) leave(snapshot)
       else setUndo(snapshot)
     } catch (err) {
-      setStatus(`No se pudo eliminar: ${message(err)}.`)
+      setStatus(`No se pudo eliminar: ${errorMessage(err)}.`)
     }
   }
 
@@ -53,7 +62,17 @@ export function WorkoutDetail() {
     try {
       leave(await deleteWorkout(workout.id))
     } catch (err) {
-      setStatus(`No se pudo eliminar: ${message(err)}.`)
+      setStatus(`No se pudo eliminar: ${errorMessage(err)}.`)
+    }
+  }
+
+  async function restore(snapshot: WorkoutSnapshot) {
+    try {
+      const restored = await restoreWorkout(snapshot)
+      setUndo(null)
+      if (!restored) setStatus('No se pudo restaurar: sus ejercicios ya no existen.')
+    } catch (err) {
+      setStatus(`No se pudo restaurar: ${errorMessage(err)}.`)
     }
   }
 
@@ -107,11 +126,7 @@ export function WorkoutDetail() {
           <button
             type="button"
             className="btn-link"
-            onClick={() =>
-              void restoreWorkout(undo)
-                .then(() => setUndo(null))
-                .catch((err: unknown) => setStatus(`No se pudo restaurar: ${message(err)}.`))
-            }
+            onClick={() => void restore(undo)}
           >
             Deshacer
           </button>

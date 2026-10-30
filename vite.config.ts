@@ -32,10 +32,16 @@ function offline(): Plugin {
           .filter((f) => f !== 'index.html')
           .map((f) => `/${f}`),
       ]
-      const version = createHash('sha256').update(files.join()).digest('hex').slice(0, 12)
-      const template = readFileSync('src/sw.js', 'utf8')
+      // La versión depende del CONTENIDO (incluidos index.html y los archivos de public/ sin hash):
+      // si algo cambia, sw.js cambia, el navegador instala la versión nueva y renueva la caché.
+      const hash = createHash('sha256')
+      for (const output of Object.values(bundle)) hash.update(output.type === 'chunk' ? output.code : output.source)
+      hash.update(readFileSync(new URL('./public/favicon.svg', import.meta.url)))
+      const version = hash.digest('hex').slice(0, 12)
+
+      const template = readFileSync(new URL('./src/sw.js', import.meta.url), 'utf8')
       const source = template.replaceAll('__VERSION__', version).replaceAll('__PRECACHE__', JSON.stringify(files))
-      if (source.includes('__')) throw new Error('sw.js: quedan marcadores sin sustituir')
+      if (/__VERSION__|__PRECACHE__/.test(source)) throw new Error('sw.js: quedan marcadores sin sustituir')
       this.emitFile({ type: 'asset', fileName: 'sw.js', source })
     },
   }

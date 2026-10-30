@@ -16,6 +16,8 @@ async function finishedWorkout(page: Page) {
     await expect(block.locator('.set-value')).toHaveCount(1)
   }
   await page.getByRole('button', { name: 'Terminar entrenamiento' }).click()
+  // Esperar a que se guarde: una recarga completa (goto) abortaría la transacción de IndexedDB.
+  await expect(page.getByText('Entrenamiento guardado')).toBeVisible()
   await page.goto('/historial')
   await page.getByRole('list', { name: 'Entrenamientos' }).getByRole('link').click()
 }
@@ -39,6 +41,18 @@ test('eliminar el entrenamiento entero y deshacer desde el historial', async ({ 
   await expect(page).toHaveURL(/\/historial$/)
   await expect(page.getByText('Aún no hay entrenamientos terminados.')).toBeVisible()
 
+  // Ni "Atrás" lleva al detalle borrado, ni el deshacer reaparece al volver a la página.
+  await page.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Ejercicios' }).click()
+  await page.goBack()
+  await expect(page).toHaveURL(/\/historial$/)
+  await expect(page.getByRole('button', { name: 'Deshacer' })).toHaveCount(0)
+  await page.goBack()
+  await expect(page.getByText('Entrenamiento no encontrado')).toHaveCount(0)
+})
+
+test('el deshacer de una sesión borrada funciona', async ({ page }) => {
+  await finishedWorkout(page)
+  await page.getByRole('button', { name: 'Eliminar entrenamiento' }).click()
   await page.getByRole('button', { name: 'Deshacer' }).click()
   const entry = page.getByRole('list', { name: 'Entrenamientos' }).getByRole('link')
   // Reps por defecto 10: 10 × 60 + 10 × 100.

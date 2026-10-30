@@ -52,6 +52,15 @@ test('borrar rutina se puede deshacer', async ({ page }) => {
   await expect(page.getByRole('list', { name: 'Tus rutinas' })).toContainText('Torso')
 })
 
+test('el deshacer de una rutina no reaparece al recargar', async ({ page }) => {
+  await createRoutine(page)
+  await page.getByRole('button', { name: 'Eliminar rutina' }).click()
+  await expect(page.getByRole('button', { name: 'Deshacer' })).toBeVisible()
+  await page.reload()
+  await expect(page.getByText('Aún no tienes rutinas.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Deshacer' })).toHaveCount(0)
+})
+
 test('exportar e importar: rechaza archivos inválidos y reemplaza con uno válido', async ({ page }) => {
   await createRoutine(page)
   await page.goto('/historial')

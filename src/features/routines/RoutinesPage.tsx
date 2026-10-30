@@ -1,16 +1,18 @@
 import { useId, useState, type FormEvent } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { allRoutines, createRoutine, restoreRoutine } from '../../db/routines.ts'
 import { useLiveQuery } from '../../db/useLiveQuery.ts'
+import { errorMessage } from '../../domain/errors.ts'
 import { nameField, type Routine } from '../../domain/model.ts'
 import { count } from '../../domain/stats.ts'
 import { Page } from '../../ui/Page.tsx'
+import { usePendingUndo } from '../../ui/pendingUndo.ts'
 
 export function RoutinesPage() {
   const routines = useLiveQuery(allRoutines, [])
   const navigate = useNavigate()
   // El editor navega aquí con la rutina borrada para ofrecer deshacer.
-  const deleted = (useLocation().state as { deleted?: Routine } | null)?.deleted
+  const [deleted, setDeleted] = usePendingUndo<Routine>('routine')
   const [error, setError] = useState('')
   const id = useId()
 
@@ -75,8 +77,8 @@ export function RoutinesPage() {
             className="btn-link"
             onClick={() =>
               void restoreRoutine(deleted)
-                .then(() => navigate('.', { replace: true, state: null }))
-                .catch((err: unknown) => setError(err instanceof Error ? err.message : 'No se pudo restaurar'))
+                .then(() => setDeleted(null))
+                .catch((err: unknown) => setError(`No se pudo restaurar: ${errorMessage(err)}`))
             }
           >
             Deshacer

@@ -3,13 +3,14 @@ import { z } from 'zod'
 import { bodyWeights, deleteBodyWeight, restoreBodyWeight, saveBodyWeight } from '../../db/progress.ts'
 import { useLiveQuery } from '../../db/useLiveQuery.ts'
 import { localDate, todayISO } from '../../domain/dates.ts'
+import { errorMessage } from '../../domain/errors.ts'
 import { bodyWeightInput, toDecimalInput, type BodyWeight } from '../../domain/model.ts'
 import { formatDate, kgLabel as kg } from '../../domain/stats.ts'
 import { Icon } from '../../ui/Icon.tsx'
 import { LineChart } from '../../ui/LineChart.tsx'
 
 const RECENT = 5
-const message = (err: unknown) => (err instanceof Error ? err.message : 'error desconocido')
+const message = errorMessage
 
 export function BodyWeightSection() {
   const entries = useLiveQuery(bodyWeights, [])

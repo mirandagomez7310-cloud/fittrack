@@ -10,6 +10,8 @@ const router = createBrowserRouter(routes)
 void navigator.storage?.persist?.()
 
 // Solo en build: en dev el service worker serviría archivos viejos e interferiría con la recarga en caliente.
+// shortcut: sw.js y su caché asumen que la app se sirve en la raíz "/"; si se publica en una subruta
+// (p. ej. GitHub Pages en /fittrack/), adaptar el registro (BASE_URL) y las rutas de sw.js.
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   navigator.serviceWorker
     .register('/sw.js')

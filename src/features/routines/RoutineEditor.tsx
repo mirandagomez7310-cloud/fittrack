@@ -15,6 +15,7 @@ import { nameField, type Routine } from '../../domain/model.ts'
 import { ExercisePicker } from '../../ui/ExercisePicker.tsx'
 import { Icon } from '../../ui/Icon.tsx'
 import { Page } from '../../ui/Page.tsx'
+import { setPendingUndo } from '../../ui/pendingUndo.ts'
 
 /** 1..max, más el valor actual si viene de una copia importada con otro rango. */
 const options = (max: number, current: number) =>
@@ -128,7 +129,15 @@ export function RoutineEditor() {
       <button
         type="button"
         className="btn btn-danger btn-block"
-        onClick={() => void run(deleteRoutine(routine.id).then(() => navigate('/rutinas', { state: { deleted: routine } })))}
+        // replace: tras borrar, "Atrás" no debe volver al editor de una rutina que ya no existe.
+        onClick={() =>
+          void run(
+            deleteRoutine(routine.id).then(() => {
+              setPendingUndo('routine', routine)
+              navigate('/rutinas', { replace: true })
+            }),
+          )
+        }
       >
         Eliminar rutina
       </button>

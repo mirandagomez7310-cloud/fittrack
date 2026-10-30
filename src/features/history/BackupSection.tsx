@@ -2,11 +2,12 @@ import { useId, useState, type ChangeEvent } from 'react'
 import { exportData, importData, lastExportAt, markExported } from '../../db/backup.ts'
 import { useLiveQuery } from '../../db/useLiveQuery.ts'
 import { getActiveWorkout } from '../../db/workouts.ts'
+import { errorMessage } from '../../domain/errors.ts'
 import { backupSchema, MAX_BACKUP_BYTES, parseBackup, type Backup } from '../../domain/backup.ts'
 import { count, formatDateTime } from '../../domain/stats.ts'
 
 const STALE_MS = 7 * 86_400_000
-const message = (err: unknown) => (err instanceof Error ? err.message : 'error desconocido')
+const message = errorMessage
 
 async function exportState() {
   const at = await lastExportAt()

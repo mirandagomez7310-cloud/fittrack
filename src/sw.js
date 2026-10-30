@@ -28,18 +28,10 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return
 
   if (request.mode === 'navigate') {
-    // La SPA sirve el mismo index.html en todas las rutas: se guarda una sola copia bajo "/".
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response.ok) {
-            const copy = response.clone()
-            event.waitUntil(caches.open(CACHE).then((cache) => cache.put('/', copy)))
-          }
-          return response
-        })
-        .catch(() => caches.match('/', MATCH).then((shell) => shell ?? Response.error())),
-    )
+    // La SPA sirve el mismo index.html en todas las rutas. El shell "/" de cada caché es el del install
+    // de su versión: no se reescribe aquí, o un SW viejo guardaría el HTML nuevo (que apunta a /assets/
+    // que su caché no tiene) y offline la app saldría en blanco.
+    event.respondWith(fetch(request).catch(() => caches.match('/', MATCH).then((shell) => shell ?? Response.error())))
     return
   }
 
