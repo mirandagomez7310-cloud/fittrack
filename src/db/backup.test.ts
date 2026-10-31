@@ -113,7 +113,13 @@ test.each<[string, (b: Backup) => unknown]>([
   ['nombre enorme', (b) => ({ ...b, routines: [{ ...b.routines[0]!, name: 'x'.repeat(500) }] })],
   ['id con caracteres de ruta', (b) => ({ ...b, workouts: [{ ...b.workouts[0]!, id: '../ejercicios' }], sets: [] })],
   ['ejercicio repetido en una rutina', (b) => ({ ...b, routines: [{ ...b.routines[0]!, items: [b.routines[0]!.items[0]!, b.routines[0]!.items[0]!] }] })],
-  ['serie de un ejercicio ajeno a su sesión', (b) => ({ ...b, sets: [{ ...b.sets[0]!, exerciseId: b.exercises.at(-1)!.id }] })],
+  // No vale b.exercises.at(-1): van ordenados por id aleatorio y a veces es uno de la sesión.
+  ['serie de un ejercicio ajeno a su sesión', (b) => {
+    const w = b.workouts[0]!
+    const ownIds = [...w.exerciseIds, ...(w.plan ?? []).map((i) => i.exerciseId)]
+    const foreign = b.exercises.find((e) => !ownIds.includes(e.id))!
+    return { ...b, sets: [{ ...b.sets[0]!, exerciseId: foreign.id }] }
+  }],
   ['ejercicio repetido en el plan', (b) => ({ ...b, workouts: [{ ...b.workouts[0]!, plan: [b.workouts[0]!.plan![0]!, b.workouts[0]!.plan![0]!] }] })],
   ['dos sesiones abiertas', (b) => ({ ...b, workouts: [{ ...b.workouts[0]!, endedAt: undefined }, { ...b.workouts[0]!, id: 'w2', endedAt: undefined }] })],
 ])('rechaza copia con %s', async (_, mutate) => {
