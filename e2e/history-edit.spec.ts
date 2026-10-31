@@ -43,6 +43,9 @@ test('eliminar el entrenamiento entero y deshacer desde el historial', async ({ 
 
   // Ni "Atrás" lleva al detalle borrado, ni el deshacer reaparece al volver a la página.
   await page.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Ejercicios' }).click()
+  // La URL cambia antes de que React pinte la página nueva: si "Atrás" llega en ese hueco, el historial
+  // nunca se desmonta y su deshacer sigue (correcto para la app). Esperar a ver Ejercicios.
+  await expect(page.getByRole('heading', { level: 1, name: 'Ejercicios' })).toBeVisible()
   await page.goBack()
   await expect(page).toHaveURL(/\/historial$/)
   await expect(page.getByRole('button', { name: 'Deshacer' })).toHaveCount(0)
